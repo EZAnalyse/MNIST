@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 
 # load the mnist database from the *.npy files
@@ -30,10 +31,23 @@ def __rnd_show(images, labels):
     plt.show()
 
 
+# construct input dataset for estimator training
+def train_input_fn(features, labels, batch_size):
+    # features: all features in numpy array type
+    # labels: all labels in numpy array type
+    # batch_size: size of training dataset in each training step
+    dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+    dataset = dataset.shuffle(buffer_size=1024).repeat(count=None).batch(batch_size)
+    return dataset.make_one_shot_iterator().get_next()
+
+
 def main():
     train, test = load_mnist()
     x_train, y_train = train
-    __rnd_show(x_train, y_train)
+    a = train_input_fn(x_train, y_train, 2)
+    with tf.Session() as sess:
+        b = sess.run(a)
+    print(b)
 
 
 if __name__ == '__main__':
