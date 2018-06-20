@@ -12,10 +12,10 @@ def load_mnist(path='./mnist_db/'):
     # return numpy.array, (train_db, test_db)
     # x: image
     # y: label
-    x_train = np.load(path+'x_train.npy')
-    y_train = np.load(path+'y_train.npy')
-    x_test = np.load(path+'x_test.npy')
-    y_test = np.load(path+'y_test.npy')
+    x_train = np.load(path + 'x_train.npy')
+    y_train = np.load(path + 'y_train.npy')
+    x_test = np.load(path + 'x_test.npy')
+    y_test = np.load(path + 'y_test.npy')
     return (x_train, y_train), (x_test, y_test)
 
 
@@ -38,16 +38,22 @@ def train_input_fn(features, labels, batch_size):
     # batch_size: size of training dataset in each training step
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
     dataset = dataset.shuffle(buffer_size=1024).repeat(count=None).batch(batch_size)
+    dataset = dataset.map(label_one_hot)  # convert labels to one hot array
     return dataset.make_one_shot_iterator().get_next()
+
+
+# convert labels to one_hot
+def label_one_hot(features, labels):
+    labels = tf.one_hot(labels, 10)
+    return features, labels
 
 
 def main():
     train, test = load_mnist()
     x_train, y_train = train
-    a = train_input_fn(x_train, y_train, 2)
+    a = train_input_fn(x_train, y_train, 3)
     with tf.Session() as sess:
         b = sess.run(a)
-    print(b)
 
 
 if __name__ == '__main__':
