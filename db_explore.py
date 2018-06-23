@@ -31,19 +31,33 @@ def __rnd_show(images, labels):
     plt.show()
 
 
+def __input_fn(features, labels, batch_size, count):
+    dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+    dataset = dataset.shuffle(buffer_size=1024).repeat(count=count).batch(batch_size)
+    dataset = dataset.map(__label_one_hot)  # convert labels to one hot array
+    return dataset  # .make_one_shot_iterator().get_next()
+
+
 # construct input dataset for estimator training
 def train_input_fn(features, labels, batch_size):
-    # features: all features in numpy array type
-    # labels: all labels in numpy array type
-    # batch_size: size of training dataset in each training step
-    dataset = tf.data.Dataset.from_tensor_slices((features, labels))
-    dataset = dataset.shuffle(buffer_size=1024).repeat(count=None).batch(batch_size)
-    dataset = dataset.map(label_one_hot)  # convert labels to one hot array
-    return dataset  #.make_one_shot_iterator().get_next()
+    count = None
+    return __input_fn(features, labels, batch_size, count)
+
+
+# construct input dataset for estimator evaluating
+def eval_input_fn(features, labels, batch_size):
+    count = 1
+    return __input_fn(features, labels, batch_size, count)
+
+
+def predict_input_fn(features, batch_size):
+    dataset = tf.data.Dataset.from_tensor_slices(features)
+    dataset = dataset.shuffle(buffer_size=1024).repeat(count=1).batch(batch_size)
+    return dataset  # .make_one_shot_iterator().get_next()
 
 
 # convert labels to one_hot
-def label_one_hot(features, labels):
+def __label_one_hot(features, labels):
     features = tf.cast(features, dtype=tf.float32)
     labels = tf.one_hot(labels, 10, dtype=tf.int32)
     return features, labels
