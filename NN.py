@@ -38,15 +38,25 @@ def main():
     train, test = db_explore.load_mnist()
     x_train, y_train = train
     batch_size = 32
+    # build config of ckpt files
+    save_config = tf.estimator.RunConfig(model_dir='./model', keep_checkpoint_max=3)
 
     # build estimator
-    estimator = tf.estimator.Estimator(model_fn=nn_model_fn, model_dir='./model')
-    # Set up logging for predictions
-    tensors_to_log = {"probabilities": "softmax_tensor"}
-    logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
+    estimator = tf.estimator.Estimator(model_fn=nn_model_fn, config=save_config)
 
-    estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=100,
-                    hooks=[logging_hook, ])
+    # # Set up logging for predictions
+    # tensors_to_log = {"probabilities": "softmax_tensor"}
+    # logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=100)
+    #
+    # estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=100,
+    #                 hooks=[logging_hook, ])
+
+    # # no logging hooks
+    # estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=100,)
+
+    x_test, y_test = test
+    ev = estimator.evaluate(input_fn=lambda: db_explore.eval_input_fn(x_test, y_test, batch_size))
+    print(ev)
 
 
 if __name__ == '__main__':
