@@ -15,15 +15,17 @@ def nn_model_fn(features, labels, mode):
 
     predictions = {"classes": tf.argmax(input=output_layer, axis=1),
                    "probabilities": tf.nn.softmax(output_layer, name="softmax_tensor")}
+
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=tf.argmax(labels, axis=1), logits=output_layer)
+    loss = tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=output_layer)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+
     if mode == tf.estimator.ModeKeys.EVAL:
         eval_metric_ops = {
             "accuracy": tf.metrics.accuracy(labels=tf.argmax(labels, axis=1), predictions=predictions["classes"])}
@@ -39,7 +41,7 @@ def main():
     x_train, y_train = train
     batch_size = 32
     # build config of ckpt files
-    save_config = tf.estimator.RunConfig(model_dir='./model', keep_checkpoint_max=3)
+    save_config = tf.estimator.RunConfig(model_dir='./model/nn', keep_checkpoint_max=3)
 
     # build estimator
     estimator = tf.estimator.Estimator(model_fn=nn_model_fn, config=save_config)
@@ -51,8 +53,8 @@ def main():
     # estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=100,
     #                 hooks=[logging_hook, ])
 
-    # # no logging hooks
-    # estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=100,)
+    # no logging hooks
+    estimator.train(input_fn=lambda: db_explore.train_input_fn(x_train, y_train, batch_size), steps=200, )
 
     x_test, y_test = test
     ev = estimator.evaluate(input_fn=lambda: db_explore.eval_input_fn(x_test, y_test, batch_size))
