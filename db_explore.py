@@ -35,7 +35,7 @@ def __input_fn(features, labels, batch_size, count):
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
     dataset = dataset.shuffle(buffer_size=1024).repeat(count=count).batch(batch_size)
     dataset = dataset.map(__label_one_hot)  # convert labels to one hot array
-    return dataset  # .make_one_shot_iterator().get_next()
+    return dataset.make_one_shot_iterator().get_next()
 
 
 # construct input dataset for estimator training
@@ -53,7 +53,7 @@ def eval_input_fn(features, labels, batch_size):
 def predict_input_fn(features, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices(features)
     dataset = dataset.shuffle(buffer_size=1024).repeat(count=1).batch(batch_size)
-    return dataset  # .make_one_shot_iterator().get_next()
+    return dataset.make_one_shot_iterator().get_next()
 
 
 # convert labels to one_hot
@@ -69,6 +69,8 @@ def main():
     a = train_input_fn(x_train, y_train, 3)
     with tf.Session() as sess:
         b = sess.run(a)
+    x, y = b
+    print(x.shape)
 
 
 if __name__ == '__main__':
