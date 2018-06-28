@@ -14,7 +14,7 @@ def cnn_model(features, mode):
     """
     input_layer = tf.reshape(features, shape=[-1, 28, 28, 1])
     # conv1
-    conv1 = layers.conv2d(inputs=input_layer, filters=32, kernel_size=[5, 5], padding="same", activation=tf.nn.relu,
+    conv1 = layers.conv2d(inputs=input_layer, filters=32, kernel_size=[3, 3], padding="same", activation=tf.nn.relu,
                           name='conv1')
     pool1 = layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2, name='pool1')
     # conv2
@@ -50,7 +50,7 @@ def Train_op(loss, mode):
     :return: trainer
     """
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.AdadeltaOptimizer(learning_rate=0.001)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return train_op
 
@@ -93,19 +93,20 @@ def main():
     train, test = db_explore.load_mnist()
     x_train, y_train = train
 
-    run_config = tf.estimator.RunConfig(model_dir='./model', keep_checkpoint_max=2, save_checkpoints_steps=100)
+    run_config = tf.estimator.RunConfig(model_dir='./model/cnn', keep_checkpoint_max=2, save_checkpoints_steps=100)
     estimator = tf.estimator.Estimator(model_fn=cnn_model_fn, config=run_config)
 
-    # Set up logging for predictions
-    tensors_to_log = {"probabilities": "softmax_tensor"}
-    logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
-
     train_input_fn = lambda: db_explore.train_input_fn(x_train, y_train, 32)
-    estimator.train(input_fn=train_input_fn, steps=2000, hooks=[logging_hook, ])
-
     x_test, y_test = test
     eval_input_fn = lambda: db_explore.eval_input_fn(x_test, y_test, 32)
-    eval = estimator.evaluate(input_fn=eval_input_fn, )
+
+    # for _ in range(10):
+    #     estimator.train(input_fn=train_input_fn, steps=2000, )
+    #
+    #     eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
+    #     print(eval)
+
+    eval = estimator.evaluate(input_fn=eval_input_fn)
     print(eval)
 
 
