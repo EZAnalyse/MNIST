@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
 
-#!/usr/bin/env python
-# _*_ coding:utf-8 _*_
 
 import tensorflow as tf
 from tensorflow import layers
 from tensorflow.contrib import rnn
+import db_explore
 
 
 def lstm_model(features, mode):
@@ -20,7 +19,7 @@ def lstm_model(features, mode):
     lstm_out, _ = rnn.static_rnn(lstm_cell, input_layer, dtype=tf.float32)
     flatten_layer = layers.flatten(lstm_out[-1], )
     dense_layer = layers.dense(inputs=flatten_layer, units=512)
-    dropout = layers.dropout(inputs=dense_layer, rate=0.4, training= (mode==tf.estimator.ModeKeys.TRAIN))
+    dropout = layers.dropout(inputs=dense_layer, rate=0.4, training=(mode == tf.estimator.ModeKeys.TRAIN))
     logits = layers.dense(inputs=dropout, units=10)
     return logits
 
@@ -84,21 +83,22 @@ def main():
     tf.logging.set_verbosity(tf.logging.INFO)
 
     # build estimator
-    run_config = tf.estimator.RunConfig(model_dir='./model/lstm', keep_checkpoint_max=2, save_checkpoints_steps=100, tf_random_seed=2018)
+    run_config = tf.estimator.RunConfig(model_dir='./model/lstm', keep_checkpoint_max=2, save_checkpoints_steps=100,
+                                        tf_random_seed=2018)
     estimator = tf.estimator.Estimator(model_fn=lstm_model_fn, config=run_config)
 
-    # # load mnist data
-    # train, test = db_explore.load_mnist()
-    #
-    # x_train, y_train = train
-    # train_input_fn = lambda: db_explore.train_input_fn(x_train, y_train, 32)
-    # x_test, y_test = test
-    # eval_input_fn = lambda: db_explore.eval_input_fn(x_test, y_test, 32)
-    #
-    # for _ in range(10):
-    #     estimator.train(input_fn=train_input_fn, steps=2000, )
-    #     eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
-    #     print(eval)
+    # load mnist data
+    train, test = db_explore.load_mnist()
+
+    x_train, y_train = train
+    train_input_fn = lambda: db_explore.train_input_fn(x_train, y_train, 32)
+    x_test, y_test = test
+    eval_input_fn = lambda: db_explore.eval_input_fn(x_test, y_test, 32)
+
+    for _ in range(10):
+        estimator.train(input_fn=train_input_fn, steps=2000, )
+        eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
+        print(eval)
 
 
 if __name__ == '__main__':
