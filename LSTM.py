@@ -16,7 +16,11 @@ def lstm_model(features, mode):
     """
     input_layer = tf.unstack(value=features, num=28, axis=1, name='unstack')
     lstm_cell = rnn.BasicLSTMCell(num_units=128, )
-    lstm_out, _ = rnn.static_rnn(lstm_cell, input_layer, dtype=tf.float32)
+    init_state_c = tf.get_variable(name='c', dtype=tf.float32, initializer=tf.truncated_normal(shape=[32, 128]))
+    init_state_h = tf.get_variable(name='h', dtype=tf.float32, initializer=tf.truncated_normal(shape=[32, 128]))
+    tf.summary.scalar(name='c', tensor=init_state_c[0, 0])
+    tf.summary.scalar(name='h', tensor=init_state_h[0, 0])
+    lstm_out, _ = rnn.static_rnn(lstm_cell, input_layer, initial_state=(init_state_c, init_state_h))
     flatten_layer = layers.flatten(lstm_out[-1], )
     dense_layer = layers.dense(inputs=flatten_layer, units=512)
     dropout = layers.dropout(inputs=dense_layer, rate=0.4, training=(mode == tf.estimator.ModeKeys.TRAIN))
@@ -44,7 +48,8 @@ def Train_op(loss, mode):
     :return: trainer
     """
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        optimizer = tf.train.AdamOptimizer()
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return train_op
 
@@ -83,7 +88,7 @@ def main():
     tf.logging.set_verbosity(tf.logging.INFO)
 
     # build estimator
-    run_config = tf.estimator.RunConfig(model_dir='./model/lstm', keep_checkpoint_max=2, save_checkpoints_steps=100,
+    run_config = tf.estimator.RunConfig(model_dir='./model/lstm', keep_checkpoint_max=2, save_checkpoints_steps=500,
                                         tf_random_seed=2018)
     estimator = tf.estimator.Estimator(model_fn=lstm_model_fn, config=run_config)
 
@@ -97,7 +102,7 @@ def main():
 
     for _ in range(10):
         estimator.train(input_fn=train_input_fn, steps=2000, )
-        eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
+        eval = estimator.evaluate(input_fn=eval_input_fn, steps=200)
         print(eval)
 
 
