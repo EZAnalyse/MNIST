@@ -12,8 +12,9 @@ def cnn_model(features, mode):
     :param features: images
     :return: predicts
     """
-    input_layer = tf.reshape(features, shape=[-1, 28, 28, 1])
+    input_layer = tf.reshape(features, shape=[-1, 28, 28, 1], name='input')
     # conv1
+    # trainable can change in middle of training
     conv1 = layers.conv2d(inputs=input_layer, filters=32, kernel_size=[3, 3], padding="same", activation=tf.nn.relu,
                           name='conv1')
     pool1 = layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2, name='pool1')
@@ -24,7 +25,7 @@ def cnn_model(features, mode):
     # fully connected layer
     pool2_flat = layers.flatten(pool2, name='flatten')
     dense = layers.dense(inputs=pool2_flat, units=512, activation=tf.nn.relu, name='dense_layer')
-    dropout = layers.dropout(inputs=dense, rate=0.4, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = layers.dropout(inputs=dense, rate=0.4, training=(mode == tf.estimator.ModeKeys.TRAIN), name='dropout')
     # output layer
     logits = tf.layers.dense(inputs=dropout, units=10, name='logits')
     return logits
@@ -85,30 +86,29 @@ def cnn_model_fn(features, labels, mode):
                                       eval_metric_ops=eval_metric_ops)
 
 
-def main():
+def main(argv):
     # set logging verbosity high enough
     tf.logging.set_verbosity(tf.logging.INFO)
+
+    # build estiamtor
+    run_config = tf.estimator.RunConfig(model_dir='./model/cnn', keep_checkpoint_max=2, save_checkpoints_steps=500)
+    estimator = tf.estimator.Estimator(model_fn=cnn_model_fn, config=run_config)
 
     # load mnist data
     train, test = db_explore.load_mnist()
     x_train, y_train = train
-
-    run_config = tf.estimator.RunConfig(model_dir='./model/cnn', keep_checkpoint_max=2, save_checkpoints_steps=100)
-    estimator = tf.estimator.Estimator(model_fn=cnn_model_fn, config=run_config)
-
     train_input_fn = lambda: db_explore.train_input_fn(x_train, y_train, 32)
     x_test, y_test = test
     eval_input_fn = lambda: db_explore.eval_input_fn(x_test, y_test, 32)
 
-    # for _ in range(10):
-    #     estimator.train(input_fn=train_input_fn, steps=2000, )
-    #
-    #     eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
-    #     print(eval)
+    for _ in range(10):
+        estimator.train(input_fn=train_input_fn, steps=2000, )
+        eval = estimator.evaluate(input_fn=eval_input_fn, steps=2000)
+        print(eval)
 
     eval = estimator.evaluate(input_fn=eval_input_fn)
     print(eval)
 
 
 if __name__ == '__main__':
-    main()
+    tf.app.run()
