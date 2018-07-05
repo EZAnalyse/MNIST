@@ -14,17 +14,14 @@ def lstm_model(features, mode):
     :param features: images
     :return: predicts
     """
-    input_layer = tf.unstack(value=features, num=28, axis=1, name='unstack')
-    lstm_cell = rnn.BasicLSTMCell(num_units=128, )
-    init_state_c = tf.get_variable(name='c', dtype=tf.float32, initializer=tf.truncated_normal(shape=[32, 128]))
-    init_state_h = tf.get_variable(name='h', dtype=tf.float32, initializer=tf.truncated_normal(shape=[32, 128]))
-    tf.summary.scalar(name='c', tensor=init_state_c[0, 0])
-    tf.summary.scalar(name='h', tensor=init_state_h[0, 0])
-    lstm_out, _ = rnn.static_rnn(lstm_cell, input_layer, initial_state=(init_state_c, init_state_h))
-    flatten_layer = layers.flatten(lstm_out[-1], )
-    dense_layer = layers.dense(inputs=flatten_layer, units=512)
-    dropout = layers.dropout(inputs=dense_layer, rate=0.4, training=(mode == tf.estimator.ModeKeys.TRAIN))
-    logits = layers.dense(inputs=dropout, units=10)
+    input_layer = tf.unstack(value=features, num=28, axis=1, name='input')
+    lstm_cell = rnn.BasicLSTMCell(num_units=128, name='lstm')
+    lstm_out, _ = rnn.static_rnn(lstm_cell, input_layer, dtype=tf.float32, )
+    flatten_layer = layers.flatten(lstm_out[-1], name='flatten')
+    dense_layer = layers.dense(inputs=flatten_layer, units=512, name='dense')
+    dropout = layers.dropout(inputs=dense_layer, rate=0.5, training=(mode == tf.estimator.ModeKeys.TRAIN),
+                             name='dropout')
+    logits = layers.dense(inputs=dropout, units=10, name='logits')
     return logits
 
 
@@ -48,8 +45,7 @@ def Train_op(loss, mode):
     :return: trainer
     """
     if mode == tf.estimator.ModeKeys.TRAIN:
-        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return train_op
 
@@ -66,15 +62,16 @@ def lstm_model_fn(features, labels, mode):
     logits = lstm_model(features=features, mode=mode)
 
     # predictions
-    predictions = {"classes": tf.argmax(input=logits, axis=1),
-                   "probabilities": tf.nn.softmax(logits, name="softmax_tensor")}
+    predictions = {"classes": tf.argmax(input=logits, axis=1, name='y_pred'),
+                   "probabilities": tf.nn.softmax(logits, name="y_prob")}
 
     loss = Loss(labels=labels, logits=logits, mode=mode)
 
     train_op = Train_op(loss=loss, mode=mode)
 
     if mode == tf.estimator.ModeKeys.EVAL:
-        accuracy = tf.metrics.accuracy(labels=tf.argmax(labels, axis=1), predictions=predictions["classes"], name='acc')
+        accuracy = tf.metrics.accuracy(labels=tf.argmax(labels, axis=1), predictions=predictions["classes"],
+                                       name='accuracy')
         eval_metric_ops = {'accuracy': accuracy, }
     else:
         eval_metric_ops = None
@@ -83,7 +80,7 @@ def lstm_model_fn(features, labels, mode):
                                       eval_metric_ops=eval_metric_ops)
 
 
-def main():
+def main(argv):
     # set logging verbosity high enough
     tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -102,9 +99,11 @@ def main():
 
     for _ in range(10):
         estimator.train(input_fn=train_input_fn, steps=2000, )
-        eval = estimator.evaluate(input_fn=eval_input_fn, steps=200)
+        eval = estimator.evaluate(input_fn=eval_input_fn, steps=500)
         print(eval)
+    eval = estimator.evaluate(input_fn=eval_input_fn, )
+    print(eval)
 
 
 if __name__ == '__main__':
-    main()
+    tf.app.run()
