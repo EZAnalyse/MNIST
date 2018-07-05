@@ -1,4 +1,4 @@
 # MNIST
 The "Hello World" of machine learning.
 
-Construce NN, CNN, LSTM with Tensorflow API.
+Construct NN, CNN and LSTM model with Tensorflow API.
