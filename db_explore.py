@@ -70,7 +70,7 @@ def main():
     with tf.Session() as sess:
         b = sess.run(a)
     x, y = b
-    print(x.shape)
+    print(x.shape, y.shape)
 
 
 if __name__ == '__main__':
